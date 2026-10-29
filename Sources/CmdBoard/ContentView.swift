@@ -14,8 +14,11 @@ struct ContentView: View {
                 if let i = store.proyectos.firstIndex(where: { $0.id == seleccion }) {
                     ProyectoView(proyecto: $store.proyectos[i])
                         .id(store.proyectos[i].id)
+                } else if let i = store.grupos.firstIndex(where: { $0.id == seleccion }) {
+                    NavegadorView(grupo: $store.grupos[i])
+                        .id(store.grupos[i].id)
                 } else {
-                    Text("Selecciona o crea un proyecto")
+                    Text("Selecciona o crea un elemento")
                         .foregroundStyle(Tema.apagado)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
@@ -26,18 +29,23 @@ struct ContentView: View {
         .navigationTitle("")
         .toolbarBackground(.hidden, for: .windowToolbar)
         .sheet(item: $nombrando) { n in
-            NombreSheet(titulo: n.id == nil ? "Nuevo proyecto" : "Renombrar proyecto",
+            NombreSheet(titulo: (n.id == nil ? "Nuevo " : "Renombrar ") + (n.grupo ? "grupo del Navegador" : "proyecto"),
+                        etiqueta: n.grupo ? "Nombre del grupo" : "Nombre del proyecto",
                         texto: n.texto) { nombre in
                 if let id = n.id {
                     if let i = store.proyectos.firstIndex(where: { $0.id == id }) {
                         store.proyectos[i].nombre = nombre
+                    } else if let i = store.grupos.firstIndex(where: { $0.id == id }) {
+                        store.grupos[i].nombre = nombre
                     }
+                } else if n.grupo {
+                    nuevoGrupo(nombre)
                 } else {
                     nuevo(nombre)
                 }
             }
         }
-        .onAppear { if seleccion == nil { seleccion = store.proyectos.first?.id } }
+        .onAppear { if seleccion == nil { seleccion = store.proyectos.first?.id ?? store.grupos.first?.id } }
     }
 
     // MARK: Panel lateral
@@ -56,26 +64,18 @@ struct ContentView: View {
             .padding(.top, 4)
             .padding(.bottom, 10)
 
-            HStack {
-                Text("PROYECTOS")
-                    .font(.system(size: 11, weight: .semibold))
-                    .tracking(2)
-                    .foregroundStyle(Tema.cobre)
-                Spacer()
-                Button { if let s = seleccion { eliminar(s) } } label: { Image(systemName: "minus") }
-                    .disabled(seleccion == nil)
-                    .help("Eliminar proyecto")
-                Button { nombrando = Nombrando(id: nil, texto: "") } label: { Image(systemName: "plus") }
-                    .help("Nuevo proyecto")
-            }
-            .buttonStyle(EstiloSecundario())
-            .focusEffectDisabled()
-            .padding(.horizontal, 12)
-            .padding(.bottom, 8)
-
             ScrollView {
                 LazyVStack(spacing: 4) {
-                    ForEach(store.proyectos) { p in fila(p) }
+                    cabeceraSeccion("COMANDOS", ayuda: "proyecto", enSeccion: store.proyectos.contains { $0.id == seleccion }) {
+                        nombrando = Nombrando(id: nil, texto: "", grupo: false)
+                    }
+                    ForEach(store.proyectos) { p in fila(p.id, p.nombre, grupo: false) }
+
+                    cabeceraSeccion("NAVEGADOR", ayuda: "grupo", enSeccion: store.grupos.contains { $0.id == seleccion }) {
+                        nombrando = Nombrando(id: nil, texto: "", grupo: true)
+                    }
+                    .padding(.top, 14)
+                    ForEach(store.grupos) { g in fila(g.id, g.nombre, grupo: true) }
                 }
                 .padding(.horizontal, 10)
             }
@@ -85,10 +85,29 @@ struct ContentView: View {
         .background(Tema.fondo)
     }
 
-    private func fila(_ p: Proyecto) -> some View {
-        let elegido = p.id == seleccion
-        return Button { seleccion = p.id } label: {
-            Text(p.nombre.isEmpty ? "Sin nombre" : p.nombre)
+    private func cabeceraSeccion(_ titulo: String, ayuda: String, enSeccion: Bool, nuevo: @escaping () -> Void) -> some View {
+        HStack {
+            Text(titulo)
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(2)
+                .foregroundStyle(Tema.cobre)
+            Spacer()
+            Button { if let s = seleccion { eliminar(s) } } label: { Image(systemName: "minus") }
+                .disabled(!enSeccion)
+                .help("Eliminar \(ayuda)")
+            Button(action: nuevo) { Image(systemName: "plus") }
+                .help("Nuevo \(ayuda)")
+        }
+        .buttonStyle(EstiloSecundario())
+        .focusEffectDisabled()
+        .padding(.horizontal, 2)
+        .padding(.bottom, 4)
+    }
+
+    private func fila(_ id: UUID, _ nombre: String, grupo: Bool) -> some View {
+        let elegido = id == seleccion
+        return Button { seleccion = id } label: {
+            Text(nombre.isEmpty ? "Sin nombre" : nombre)
                 .foregroundStyle(elegido ? Tema.ambar : Tema.champan)
                 .fontWeight(elegido ? .semibold : .regular)
                 .lineLimit(1)
@@ -102,8 +121,8 @@ struct ContentView: View {
         }
         .buttonStyle(.plain)
         .contextMenu {
-            Button("Renombrar…") { nombrando = Nombrando(id: p.id, texto: p.nombre) }
-            Button("Eliminar", role: .destructive) { eliminar(p.id) }
+            Button("Renombrar…") { nombrando = Nombrando(id: id, texto: nombre, grupo: grupo) }
+            Button("Eliminar", role: .destructive) { eliminar(id) }
         }
     }
 
@@ -151,16 +170,18 @@ struct ContentView: View {
     // MARK: Acciones
 
     private func descartar() {
-        guard let id = seleccion, let p = store.proyectos.first(where: { $0.id == id }) else { return }
+        guard let id = seleccion,
+              let nombre = store.proyectos.first(where: { $0.id == id })?.nombre
+                ?? store.grupos.first(where: { $0.id == id })?.nombre else { return }
         let a = NSAlert()
-        a.messageText = "¿Descartar los cambios de «\(p.nombre)»?"
+        a.messageText = "¿Descartar los cambios de «\(nombre)»?"
         a.informativeText = "Volverá al estado de la última vez que aceptaste (o de cuando abriste la app). Si es un proyecto nuevo sin aceptar, se eliminará."
         a.addButton(withTitle: "Descartar")
         a.addButton(withTitle: "Cancelar")
         guard a.runModal() == .alertFirstButtonReturn else { return }
         store.descartarCambios(id)
-        if !store.proyectos.contains(where: { $0.id == seleccion }) {
-            seleccion = store.proyectos.first?.id
+        if !store.proyectos.contains(where: { $0.id == seleccion }) && !store.grupos.contains(where: { $0.id == seleccion }) {
+            seleccion = store.proyectos.first?.id ?? store.grupos.first?.id
         }
     }
 
@@ -171,26 +192,39 @@ struct ContentView: View {
         seleccion = p.id
     }
 
+    private func nuevoGrupo(_ nombre: String) {
+        var g = GrupoNavegador()
+        g.nombre = nombre
+        store.grupos.append(g)
+        seleccion = g.id
+    }
+
     private func eliminar(_ id: UUID) {
-        guard let i = store.proyectos.firstIndex(where: { $0.id == id }) else { return }
+        let esGrupo = store.grupos.contains { $0.id == id }
+        guard let nombre = store.proyectos.first(where: { $0.id == id })?.nombre
+                ?? store.grupos.first(where: { $0.id == id })?.nombre else { return }
         let a = NSAlert()
-        a.messageText = "¿Eliminar «\(store.proyectos[i].nombre)»?"
-        a.informativeText = "Se borrarán sus comandos y enlaces. Esto no se puede deshacer."
+        a.messageText = "¿Eliminar «\(nombre)»?"
+        a.informativeText = esGrupo ? "Se borrarán sus pestañas guardadas. Esto no se puede deshacer."
+                                    : "Se borrarán sus comandos y enlaces. Esto no se puede deshacer."
         a.addButton(withTitle: "Eliminar")
         a.addButton(withTitle: "Cancelar")
         guard a.runModal() == .alertFirstButtonReturn else { return }
         store.eliminar(id)
-        seleccion = store.proyectos.first?.id
+        seleccion = esGrupo ? (store.grupos.first?.id ?? store.proyectos.first?.id)
+                            : (store.proyectos.first?.id ?? store.grupos.first?.id)
     }
 }
 
 struct Nombrando: Identifiable {
     let id: UUID?
     var texto: String
+    var grupo: Bool
 }
 
 struct NombreSheet: View {
     let titulo: String
+    let etiqueta: String
     @State var texto: String
     let aceptar: (String) -> Void
     @Environment(\.dismiss) private var dismiss
@@ -200,7 +234,7 @@ struct NombreSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(titulo).font(.headline).foregroundStyle(Tema.champan)
-            TextField("Nombre del proyecto", text: $texto)
+            TextField(etiqueta, text: $texto)
                 .campo()
                 .onSubmit(guardar)
             HStack {

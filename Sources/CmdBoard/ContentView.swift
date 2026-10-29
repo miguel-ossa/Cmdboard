@@ -231,6 +231,7 @@ struct NombreSheet: View {
 struct ProyectoView: View {
     @Binding var proyecto: Proyecto
     @State private var copiado: UUID?
+    @State private var editando: Set<UUID> = []
 
     var body: some View {
         ScrollView {
@@ -266,16 +267,32 @@ struct ProyectoView: View {
         .buttonStyle(EstiloSecundario())
     }
 
+    private func alternarEdicion(_ id: UUID) {
+        if editando.contains(id) { editando.remove(id) } else { editando.insert(id) }
+    }
+
     private var comandos: some View {
         VStack(alignment: .leading, spacing: 10) {
-            cabecera("Comandos") { proyecto.comandos.append(Comando()) }
+            cabecera("Comandos") {
+                let c = Comando()
+                proyecto.comandos.append(c)
+                editando.insert(c.id)
+            }
             ForEach($proyecto.comandos) { $c in
+                let enEdicion = editando.contains(c.id)
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        TextField("Etiqueta", text: $c.etiqueta)
-                            .font(.headline)
-                            .textFieldStyle(.plain)
-                            .foregroundStyle(Tema.ambar)
+                        if enEdicion {
+                            TextField("Etiqueta", text: $c.etiqueta)
+                                .font(.headline)
+                                .textFieldStyle(.plain)
+                                .foregroundStyle(Tema.ambar)
+                        } else {
+                            Text(c.etiqueta.isEmpty ? "Sin etiqueta" : c.etiqueta)
+                                .font(.headline)
+                                .foregroundStyle(c.etiqueta.isEmpty ? Tema.apagado : Tema.ambar)
+                            Spacer()
+                        }
                         Button {
                             marcarCopiado(c.id, c.comando)
                         } label: {
@@ -283,19 +300,41 @@ struct ProyectoView: View {
                                   systemImage: copiado == c.id ? "checkmark" : "doc.on.doc")
                         }
                         .buttonStyle(EstiloPrimario())
+                        .disabled(c.comando.isEmpty)
+                        botonEdicion(c.id, enEdicion)
                         Button(role: .destructive) {
-                            proyecto.comandos.removeAll { $0.id == c.id }
+                            borrar(c.etiqueta.isEmpty ? "este comando" : "«\(c.etiqueta)»",
+                                   vacio: c.etiqueta.isEmpty && c.comando.isEmpty && c.nota.isEmpty) {
+                                proyecto.comandos.removeAll { $0.id == c.id }
+                            }
                         } label: { Image(systemName: "trash") }
                         .buttonStyle(EstiloSecundario())
+                        .help("Eliminar comando")
                     }
-                    TextField("Comando", text: $c.comando, axis: .vertical)
-                        .font(.system(.body, design: .monospaced))
-                        .campo()
-                    TextField("Nota (opcional)", text: $c.nota)
-                        .font(.caption)
-                        .textFieldStyle(.plain)
-                        .foregroundStyle(Tema.apagado)
-                        .padding(.horizontal, 4)
+                    if enEdicion {
+                        EditorMultilinea(texto: $c.comando, placeholder: "Comando (Intro añade otra línea)", mono: true)
+                        TextField("Nota (opcional)", text: $c.nota)
+                            .font(.caption)
+                            .textFieldStyle(.plain)
+                            .foregroundStyle(Tema.apagado)
+                            .padding(.horizontal, 4)
+                    } else {
+                        Text(c.comando)
+                            .font(.system(.body, design: .monospaced))
+                            .foregroundStyle(Tema.champan)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 6)
+                            .background(Tema.campo, in: RoundedRectangle(cornerRadius: 7))
+                            .overlay(RoundedRectangle(cornerRadius: 7).stroke(Tema.cobre.opacity(0.22)))
+                        if !c.nota.isEmpty {
+                            Text(c.nota)
+                                .font(.caption)
+                                .foregroundStyle(Tema.apagado)
+                                .padding(.horizontal, 4)
+                        }
+                    }
                 }
                 .tarjeta()
             }
@@ -304,28 +343,84 @@ struct ProyectoView: View {
 
     private var documentacion: some View {
         VStack(alignment: .leading, spacing: 10) {
-            cabecera("Documentación") { proyecto.documentacion.append(Enlace()) }
+            cabecera("Documentación") {
+                let d = Enlace()
+                proyecto.documentacion.append(d)
+                editando.insert(d.id)
+            }
             ForEach($proyecto.documentacion) { $d in
-                HStack(spacing: 8) {
-                    TextField("Título", text: $d.titulo).campo().frame(maxWidth: 220)
-                    TextField("Ruta o URL", text: $d.rutaOUrl).campo()
-                    Button("Archivo…") {
-                        if let r = Acciones.elegirArchivo() {
-                            d.rutaOUrl = r
-                            if d.titulo.isEmpty { d.titulo = (r as NSString).lastPathComponent }
+                let enEdicion = editando.contains(d.id)
+                if enEdicion {
+                    HStack(spacing: 8) {
+                        TextField("Título", text: $d.titulo).campo().frame(maxWidth: 220)
+                        TextField("Ruta o URL", text: $d.rutaOUrl).campo()
+                        Button("Archivo…") {
+                            if let r = Acciones.elegirArchivo() {
+                                d.rutaOUrl = r
+                                if d.titulo.isEmpty { d.titulo = (r as NSString).lastPathComponent }
+                            }
                         }
-                    }
-                    .buttonStyle(EstiloSecundario())
-                    Button("Abrir") { Acciones.abrir(d.rutaOUrl) }
                         .buttonStyle(EstiloSecundario())
-                        .disabled(d.rutaOUrl.isEmpty)
-                    Button(role: .destructive) {
-                        proyecto.documentacion.removeAll { $0.id == d.id }
-                    } label: { Image(systemName: "trash") }
-                    .buttonStyle(EstiloSecundario())
+                        botonEdicion(d.id, true)
+                        botonBorrarDocumento($d.wrappedValue)
+                    }
+                } else {
+                    HStack(spacing: 8) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(d.titulo.isEmpty ? "Sin título" : d.titulo)
+                                .foregroundStyle(d.titulo.isEmpty ? Tema.apagado : Tema.champan)
+                            Text(d.rutaOUrl)
+                                .font(.caption)
+                                .foregroundStyle(Tema.apagado)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                        Spacer()
+                        Button("Abrir") { Acciones.abrir(d.rutaOUrl) }
+                            .buttonStyle(EstiloSecundario())
+                            .disabled(d.rutaOUrl.isEmpty)
+                        botonEdicion(d.id, false)
+                        botonBorrarDocumento(d)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(Tema.panel, in: RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Tema.cobre.opacity(0.18)))
                 }
             }
         }
+    }
+
+    private func botonBorrarDocumento(_ d: Enlace) -> some View {
+        Button(role: .destructive) {
+            borrar(d.titulo.isEmpty ? "este documento" : "«\(d.titulo)»",
+                   vacio: d.titulo.isEmpty && d.rutaOUrl.isEmpty) {
+                proyecto.documentacion.removeAll { $0.id == d.id }
+            }
+        } label: { Image(systemName: "trash") }
+        .buttonStyle(EstiloSecundario())
+        .help("Eliminar documento")
+    }
+
+    /// Las entradas vacías se borran sin preguntar; el resto, con confirmación.
+    private func borrar(_ nombre: String, vacio: Bool, accion: () -> Void) {
+        if !vacio {
+            let a = NSAlert()
+            a.messageText = "¿Eliminar \(nombre)?"
+            a.informativeText = "Podrás recuperarla con «Descartar cambios» hasta que pulses «Aceptar»."
+            a.addButton(withTitle: "Eliminar")
+            a.addButton(withTitle: "Cancelar")
+            guard a.runModal() == .alertFirstButtonReturn else { return }
+        }
+        accion()
+    }
+
+    private func botonEdicion(_ id: UUID, _ enEdicion: Bool) -> some View {
+        Button { alternarEdicion(id) } label: {
+            if enEdicion { Text("Listo") } else { Image(systemName: "pencil") }
+        }
+        .buttonStyle(EstiloSecundario())
+        .help(enEdicion ? "Terminar de editar" : "Editar")
     }
 
     private func cabecera(_ titulo: String, añadir: @escaping () -> Void) -> some View {

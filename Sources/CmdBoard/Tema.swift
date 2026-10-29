@@ -75,3 +75,50 @@ extension View {
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Tema.degradadoCobre, lineWidth: 1))
     }
 }
+
+/// Editor de varias líneas: Intro inserta un salto de línea (un TextField con eje vertical lo da por terminado).
+struct EditorMultilinea: View {
+    @Binding var texto: String
+    let placeholder: String
+    var mono = false
+    var lineasMin = 2
+    var foco: FocusState<Bool>.Binding?
+
+    /// Aproxima las líneas visibles (contando el ajuste de línea) para que el editor crezca con el texto.
+    private var altura: CGFloat {
+        let lineas = texto.split(separator: "\n", omittingEmptySubsequences: false)
+            .reduce(0) { $0 + max(1, Int((Double($1.count) / 95).rounded(.up))) }
+        return CGFloat(min(max(lineas, lineasMin), 14)) * (mono ? 20 : 19) + 14
+    }
+
+    var body: some View {
+        editor
+            .scrollContentBackground(.hidden)
+            .scrollIndicators(.hidden)
+            .font(mono ? .system(.body, design: .monospaced) : .body)
+            .foregroundStyle(Tema.champan)
+            .frame(height: altura)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 2)
+            .background(Tema.campo, in: RoundedRectangle(cornerRadius: 7))
+            .overlay(RoundedRectangle(cornerRadius: 7).stroke(Tema.cobre.opacity(0.22)))
+            .overlay(alignment: .topLeading) {
+                if texto.isEmpty {
+                    Text(placeholder)
+                        .font(mono ? .system(.body, design: .monospaced) : .body)
+                        .foregroundStyle(Tema.apagado.opacity(0.7))
+                        .padding(.leading, 9)
+                        .padding(.top, 9)
+                        .allowsHitTesting(false)
+                }
+            }
+    }
+
+    @ViewBuilder private var editor: some View {
+        if let foco {
+            TextEditor(text: $texto).focused(foco)
+        } else {
+            TextEditor(text: $texto)
+        }
+    }
+}

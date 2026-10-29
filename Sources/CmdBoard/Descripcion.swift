@@ -14,10 +14,7 @@ struct DescripcionView: View {
     var body: some View {
         Group {
             if mostrarEditor {
-                TextField("Descripción del proyecto", text: $texto, axis: .vertical)
-                    .lineLimit(3...12)
-                    .focused($foco)
-                    .campo()
+                EditorMultilinea(texto: $texto, placeholder: "Descripción del proyecto", lineasMin: 3, foco: $foco)
                     .onChange(of: foco) { _, enfocado in
                         if !enfocado { editando = false }
                     }

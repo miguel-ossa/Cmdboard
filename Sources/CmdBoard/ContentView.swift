@@ -241,6 +241,8 @@ struct ProyectoView: View {
                     .textFieldStyle(.plain)
                     .foregroundStyle(Tema.champan)
                     .padding(.horizontal, 4)
+                    .padding(.vertical, 6)
+                    .frame(minHeight: 44)
 
                 DescripcionView(texto: $proyecto.descripcion)
 

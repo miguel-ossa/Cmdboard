@@ -232,6 +232,7 @@ struct ProyectoView: View {
     @Binding var proyecto: Proyecto
     @State private var copiado: UUID?
     @State private var editando: Set<UUID> = []
+    @State private var arrastrando: UUID?
 
     var body: some View {
         ScrollView {
@@ -284,6 +285,7 @@ struct ProyectoView: View {
                 let enEdicion = editando.contains(c.id)
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
+                        asa(c.id, c.etiqueta)
                         if enEdicion {
                             TextField("Etiqueta", text: $c.etiqueta)
                                 .font(.headline)
@@ -339,6 +341,7 @@ struct ProyectoView: View {
                     }
                 }
                 .tarjeta()
+                .onDrop(of: [.text], delegate: Reordenar(destino: c.id, lista: $proyecto.comandos, arrastrando: $arrastrando))
             }
         }
     }
@@ -352,8 +355,10 @@ struct ProyectoView: View {
             }
             ForEach($proyecto.documentacion) { $d in
                 let enEdicion = editando.contains(d.id)
+                Group {
                 if enEdicion {
                     HStack(spacing: 8) {
+                        asa(d.id, d.titulo)
                         TextField("Título", text: $d.titulo).campo().frame(maxWidth: 220)
                         TextField("Ruta o URL", text: $d.rutaOUrl).campo()
                         Button("Archivo…") {
@@ -368,6 +373,7 @@ struct ProyectoView: View {
                     }
                 } else {
                     HStack(spacing: 8) {
+                        asa(d.id, d.titulo)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(d.titulo.isEmpty ? "Sin título" : d.titulo)
                                 .foregroundStyle(d.titulo.isEmpty ? Tema.apagado : Tema.champan)
@@ -397,8 +403,27 @@ struct ProyectoView: View {
                     .background(Tema.panel, in: RoundedRectangle(cornerRadius: 8))
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(Tema.cobre.opacity(0.18)))
                 }
+                }
+                .onDrop(of: [.text], delegate: Reordenar(destino: d.id, lista: $proyecto.documentacion, arrastrando: $arrastrando))
             }
         }
+    }
+
+    /// Icono de las tres rayas: se arrastra desde aquí para reordenar.
+    private func asa(_ id: UUID, _ nombre: String) -> some View {
+        Image(systemName: "line.3.horizontal")
+            .foregroundStyle(Tema.apagado)
+            .frame(width: 18, height: 24)
+            .contentShape(Rectangle())
+            .onDrag {
+                arrastrando = id
+                return NSItemProvider(object: id.uuidString as NSString)
+            } preview: {
+                Text(nombre.isEmpty ? "Sin nombre" : nombre)
+                    .padding(8)
+                    .background(Tema.panel, in: RoundedRectangle(cornerRadius: 8))
+            }
+            .help("Arrastra para reordenar")
     }
 
     private func botonBorrarDocumento(_ d: Enlace) -> some View {
@@ -455,5 +480,26 @@ struct ProyectoView: View {
 
     private func comillas(_ s: String) -> String {
         "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+}
+
+/// Mueve el elemento arrastrado a la posición sobre la que se pasa.
+struct Reordenar<T: Identifiable>: DropDelegate where T.ID == UUID {
+    let destino: UUID
+    @Binding var lista: [T]
+    @Binding var arrastrando: UUID?
+
+    func dropEntered(info: DropInfo) {
+        guard let origen = arrastrando, origen != destino,
+              let de = lista.firstIndex(where: { $0.id == origen }),
+              let a = lista.firstIndex(where: { $0.id == destino }) else { return }
+        withAnimation { lista.move(fromOffsets: IndexSet(integer: de), toOffset: a > de ? a + 1 : a) }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? { DropProposal(operation: .move) }
+
+    func performDrop(info: DropInfo) -> Bool {
+        arrastrando = nil
+        return true
     }
 }

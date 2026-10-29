@@ -378,9 +378,17 @@ struct ProyectoView: View {
                                 .truncationMode(.middle)
                         }
                         Spacer()
-                        Button("Abrir") { Acciones.abrir(d.rutaOUrl) }
-                            .buttonStyle(EstiloSecundario())
-                            .disabled(d.rutaOUrl.isEmpty)
+                        if Acciones.esDocumento(d.rutaOUrl) {
+                            Button {
+                                Acciones.abrir(d.rutaOUrl)
+                            } label: { Label("Abrir documento", systemImage: "doc.text") }
+                                .buttonStyle(EstiloSecundario())
+                                .help("Abre el documento con su aplicación")
+                        } else {
+                            Button("Abrir") { Acciones.abrir(d.rutaOUrl) }
+                                .buttonStyle(EstiloSecundario())
+                                .disabled(d.rutaOUrl.isEmpty)
+                        }
                         botonEdicion(d.id, false)
                         botonBorrarDocumento(d)
                     }

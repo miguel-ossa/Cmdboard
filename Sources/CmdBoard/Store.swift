@@ -113,6 +113,21 @@ enum Acciones {
         }
     }
 
+    private static let extensionesDocumento: Set<String> = [
+        "pdf",
+        "doc", "docx", "docm", "dot", "dotx",
+        "xls", "xlsx", "xlsm", "xlsb", "xlt", "xltx",
+        "ppt", "pptx", "pptm", "pps", "ppsx",
+        "odt", "ods", "odp", "odg", "odf", "ott", "ots", "otp",
+    ]
+
+    /// PDF o documento de LibreOffice / Microsoft Office, según la extensión.
+    static func esDocumento(_ ruta: String) -> Bool {
+        let r = ruta.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !r.isEmpty, !r.contains("://") else { return false }
+        return extensionesDocumento.contains((r as NSString).pathExtension.lowercased())
+    }
+
     static func elegirCarpeta() -> String? {
         let p = NSOpenPanel()
         p.canChooseDirectories = true

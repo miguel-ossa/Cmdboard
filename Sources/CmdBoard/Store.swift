@@ -148,6 +148,23 @@ enum Acciones {
         pb.setString(texto, forType: .string)
     }
 
+    /// Ejecuta el comando en una ventana nueva de Terminal (vía un .command temporal,
+    /// que no necesita permisos de automatización). La ventana queda abierta al terminar.
+    static func ejecutarEnTerminal(_ comando: String, directorio: String) {
+        let dir = directorio.trimmingCharacters(in: .whitespacesAndNewlines)
+        var guion = "#!/bin/zsh -l\nrm -f \"$0\"\n"
+        if !dir.isEmpty {
+            let ruta = (dir as NSString).expandingTildeInPath.replacingOccurrences(of: "'", with: "'\\''")
+            guion += "cd '\(ruta)'\n"
+        }
+        guion += "\(comando)\nexec \"$SHELL\" -l\n"
+        let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("cmdboard-\(UUID().uuidString).command")
+        guard (try? guion.write(to: url, atomically: true, encoding: .utf8)) != nil else { return }
+        try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: url.path)
+        let terminal = URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app")
+        NSWorkspace.shared.open([url], withApplicationAt: terminal, configuration: NSWorkspace.OpenConfiguration())
+    }
+
     static func abrir(_ ruta: String) {
         let r = ruta.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !r.isEmpty else { return }

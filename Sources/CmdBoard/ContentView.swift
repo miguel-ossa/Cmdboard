@@ -66,7 +66,7 @@ struct ContentView: View {
 
             ScrollView {
                 LazyVStack(spacing: 4) {
-                    cabeceraSeccion("COMANDOS", ayuda: "proyecto", enSeccion: store.proyectos.contains { $0.id == seleccion }) {
+                    cabeceraSeccion("PROYECTOS", ayuda: "proyecto", enSeccion: store.proyectos.contains { $0.id == seleccion }) {
                         nombrando = Nombrando(id: nil, texto: "", grupo: false)
                     }
                     ForEach(store.proyectos) { p in fila(p.id, p.nombre, grupo: false) }
@@ -339,6 +339,14 @@ struct ProyectoView: View {
                         }
                         .buttonStyle(EstiloPrimario())
                         .disabled(c.comando.isEmpty)
+                        Button {
+                            Acciones.ejecutarEnTerminal(c.comando, directorio: proyecto.directorioTrabajo)
+                        } label: {
+                            Label("Ejecutar", systemImage: "play.fill")
+                        }
+                        .buttonStyle(EstiloPrimario())
+                        .disabled(c.comando.isEmpty)
+                        .help("Ejecutar en una ventana nueva de Terminal")
                         botonEdicion(c.id, enEdicion)
                         Button(role: .destructive) {
                             borrar(c.etiqueta.isEmpty ? "este comando" : "«\(c.etiqueta)»",

@@ -1,3 +1,7 @@
 .build/
 CmdBoard.app/
 .DS_Store
+.venv/
+.idea/
+__pycache__/
+MCP/

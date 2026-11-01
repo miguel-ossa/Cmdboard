@@ -12,20 +12,21 @@
 
 ## Qué es
 
-CmdBoard centraliza, **por proyecto**, los comandos que necesitas para arrancarlo (servidores de desarrollo, Claude Code con una configuración concreta, Omniroute, etc.), con un botón para copiarlos al portapapeles y enlaces a su documentación.
+CmdBoard centraliza, **por proyecto**, los comandos que necesitas para arrancarlo (servidores de desarrollo, Claude Code con una configuración concreta, Omniroute, etc.), con botones para copiarlos al portapapeles o ejecutarlos en Terminal, y enlaces a su documentación.
 
 Es una app de **uso personal**: sin firma de código, sin notarización y sin App Store. Se compila y se ejecuta en local.
 
 ## Funciones
 
-- **Panel lateral con dos secciones independientes**: **COMANDOS** (tus proyectos) y **NAVEGADOR** (grupos de pestañas). Cada una se crea, renombra y elimina por separado.
+- **Panel lateral con dos secciones independientes**: **PROYECTOS** y **NAVEGADOR** (grupos de pestañas). Cada una se crea, renombra y elimina por separado.
 - **Descripción** libre por proyecto. Las direcciones web que escribas se convierten en enlaces pulsables.
 - **Directorio de trabajo** opcional, con un botón para copiar el `cd` correspondiente.
-- **Comandos** con etiqueta, texto exacto y nota opcional, cada uno con su botón **Copiar**.
-- **Documentación**: rutas locales (PDF, ODT, etc.) o URLs. Se abren con la app por defecto del sistema.
+- **Comandos** con etiqueta, texto exacto (admite varias líneas) y nota opcional. Cada uno tiene su botón **Copiar** y su botón **Ejecutar**, que lo lanza en una ventana nueva de Terminal, en el directorio de trabajo del proyecto. **Se ejecuta tal cual, sin pedir confirmación**, así que revisa los comandos que importes de otras fuentes.
+- **Editar, borrar y reordenar**: comandos, documentos y pestañas se pueden editar y borrar (con confirmación) y reordenar arrastrándolos.
+- **Documentación**: rutas locales o URLs, con un botón para elegir el archivo. Se abren con la app por defecto del sistema; los PDF y los documentos de Office y LibreOffice (Word, Excel, PowerPoint, ODT, ODS, ODP…) tienen además un botón «Abrir documento».
 - **Navegador** (sección propia del panel lateral, sin relación con los proyectos): cada grupo guarda un navegador y sus pestañas con título, URL, miniatura automática (regenerable), usuario opcional y un candado si requieren login. «Abrir pestañas» las lanza todas en Safari, Chrome o Firefox. **No se guardan contraseñas**: si algún día hay autocompletado, debe delegarse en el Llavero de macOS o en un gestor como 1Password o Bitwarden.
-- **Aceptar / Descartar** cambios por proyecto. La app guarda sola en cada cambio; «Aceptar» fija el estado al que vuelve «Descartar».
-- **Exportar e importar** toda la configuración en JSON, para copias de seguridad o para cambiar de Mac.
+- **Aceptar / Descartar** cambios por proyecto o grupo. La app guarda sola en cada cambio; «Aceptar» fija el estado al que vuelve «Descartar».
+- **Exportar e importar** toda la configuración (proyectos y grupos del Navegador) en un solo JSON, para copias de seguridad o para cambiar de Mac. Al importar también se acepta el formato antiguo, que solo traía proyectos.
 
 ## Requisitos
 
@@ -51,7 +52,7 @@ open CmdBoard.app
 ~/Library/Application Support/CmdBoard/proyectos.json
 ```
 
-Es un JSON legible, que puedes copiar o editar a mano con la app cerrada. Cada proyecto tiene este aspecto:
+La app no usa base de datos: guarda JSON. `proyectos.json` es legible, que puedes copiar o editar a mano con la app cerrada. Cada proyecto tiene este aspecto:
 
 ```json
 {
@@ -67,6 +68,8 @@ Es un JSON legible, que puedes copiar o editar a mano con la app cerrada. Cada p
   ]
 }
 ```
+
+Antes de la sección Navegador, la app hizo una copia única de ese archivo como `proyectos.json.bak`.
 
 Los grupos del Navegador van aparte, en `navegador.json` (misma carpeta):
 
@@ -91,6 +94,8 @@ El menú **Archivo** tiene «Exportar configuración…» e «Importar configura
 ```
 Package.swift             Definición del paquete (macOS 14)
 build.sh                  Compila y genera CmdBoard.app
+CLAUDE.md                 Reglas del proyecto para Claude Code
+docs/RETOMAR.md           Registro de cambios (qué, dónde y cómo deshacerlo)
 Resources/                Icono de la app y logo de la interfaz
 Sources/CmdBoard/
   CmdBoardApp.swift       Punto de entrada y menú
@@ -99,7 +104,7 @@ Sources/CmdBoard/
   Models.swift            Proyecto, Comando, Enlace, GrupoNavegador y Pestana (Codable)
   NavegadorView.swift     Grupo del Navegador: cuadrícula de pestañas
   Miniaturas.swift        Captura de miniaturas con WKWebView
-  Store.swift             Persistencia, importar/exportar y acciones del sistema
+  Store.swift             Persistencia, importar/exportar y acciones del sistema (copiar, ejecutar, abrir)
   Tema.swift              Paleta y estilos (negro cálido, cobre y naranja)
 ```
 

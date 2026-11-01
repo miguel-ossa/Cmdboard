@@ -20,3 +20,5 @@ Cada entrada: qué, dónde y cómo deshacerlo.
   Deshacer: `git checkout README.md`. Sin cambios de código, no se ha ejecutado `build.sh`.
 - **`MCP/` sacado del repo** (sigue en disco, ignorado en `.gitignore`) mientras está en desarrollo y pruebas. Además se eliminó del historial de GitHub con un push forzado (los commits `9d6c89b`, `0a127fe` y `70dbe72` se juntaron en uno). La rama de copia local `copia-antes-de-reescribir` se borró después; el historial anterior ya no está en ninguna rama.
   Deshacer: quitar `MCP/` de `.gitignore` y `git add MCP/CmdBoardMCP/*.py`.
+- **`MCP/` vuelto a subir a GitHub** (por petición de Miguel). Quitado de `.gitignore`; añadidos `cmdboard_mcp_server.py`, `create_db.py`, `migrar_json_a_db.py`. Otra vez sin `/Users/mossa` fijo en `cmdboard_mcp_server.py` (`os.path.expanduser`).
+  Deshacer: `git revert` del commit (y `git push`), y volver a poner `MCP/` en `.gitignore`.

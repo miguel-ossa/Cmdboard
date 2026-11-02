@@ -22,3 +22,13 @@ Cada entrada: qué, dónde y cómo deshacerlo.
   Deshacer: quitar `MCP/` de `.gitignore` y `git add MCP/CmdBoardMCP/*.py`.
 - **`MCP/` vuelto a subir a GitHub** (por petición de Miguel). Quitado de `.gitignore`; añadidos `cmdboard_mcp_server.py`, `create_db.py`, `migrar_json_a_db.py`. Otra vez sin `/Users/mossa` fijo en `cmdboard_mcp_server.py` (`os.path.expanduser`).
   Deshacer: `git revert` del commit (y `git push`), y volver a poner `MCP/` en `.gitignore`.
+
+## 2026-11-02
+- **Sincronización con SQLite en cada guardado.** Copiado `~/Downloads/SQLiteSync.swift` a `Sources/CmdBoard/SQLiteSync.swift`; `Store.guardar()` y `Store.guardarGrupos()` llaman a `SQLiteSync.compartido.sincronizar(...)` tras escribir el JSON (`Store.swift`). Reescribe `~/Library/Application Support/CmdBoard/cmdboard.db` entero en cada guardado. El JSON sigue siendo la fuente de verdad.
+  Enlazado: el proyecto no es Xcode (no hay `project.pbxproj`), así que `-lsqlite3` va en `linkerSettings` de `Package.swift`.
+  Deshacer: borrar `SQLiteSync.swift`, quitar las 2 líneas de `Store.swift`, revertir `Package.swift` (`git checkout Package.swift Sources/CmdBoard/Store.swift`) y ejecutar `./build.sh`.
+- **Regenerado `CmdBoard.app` con `./build.sh`.** Sin otros cambios sin commitear ajenos. La app estaba abierta (PID 36477): hay que cerrarla y reabrirla para que use la versión nueva.
+- **`SQLiteSync.swift` crea el esquema solo.** Sustituido el cuerpo de `Sources/CmdBoard/SQLiteSync.swift` por la versión de `~/Downloads`: `init()` crea la carpeta `Application Support/CmdBoard` y ejecuta los `CREATE TABLE IF NOT EXISTS` (idénticos a `create_db.py`) antes de sincronizar. Regenerado `CmdBoard.app` con `./build.sh`; la app seguía abierta, hay que reabrirla.
+  Deshacer: volver a la versión anterior del fichero (no está commiteada: quitar el `esquema` y las 2 líneas nuevas de `init()`) y ejecutar `./build.sh`.
+- **Prueba de `SQLiteSync` (creación del esquema desde cero).** Con un programa de prueba fuera del repo (scratchpad) que lee `proyectos.json` y `navegador.json` y llama a `SQLiteSync.sincronizar`. Incidente: la primera ejecución (con `HOME` falso, que macOS ignora) sobrescribió `cmdboard.db` real con datos de prueba. Corregido apartando ese `.db` y recreándolo desde cero con los JSON reales: 7 proyectos, 23 comandos, 8 docs, 3 grupos, 11 pestañas, coincide con los JSON. El `.db` anterior (con migración del 1-nov) no se conservó; el actual es el espejo de los JSON de hoy.
+  Deshacer: no hace falta; el `.db` es derivado y se regenera en cada guardado. La copia con los datos de prueba está en el scratchpad y se puede borrar.

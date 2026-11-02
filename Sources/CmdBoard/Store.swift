@@ -92,6 +92,7 @@ final class Store: ObservableObject {
         if (try? datos.write(to: archivo, options: .atomic)) != nil {
             ultimoGuardado = Date()
         }
+        SQLiteSync.compartido.sincronizar(proyectos: proyectos, grupos: grupos)
     }
 
     private func guardarGrupos() {
@@ -99,6 +100,7 @@ final class Store: ObservableObject {
         if (try? datos.write(to: archivoGrupos, options: .atomic)) != nil {
             ultimoGuardado = Date()
         }
+        SQLiteSync.compartido.sincronizar(proyectos: proyectos, grupos: grupos)
     }
 
     func exportar() {

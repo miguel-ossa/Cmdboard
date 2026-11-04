@@ -32,3 +32,7 @@ Cada entrada: qué, dónde y cómo deshacerlo.
   Deshacer: volver a la versión anterior del fichero (no está commiteada: quitar el `esquema` y las 2 líneas nuevas de `init()`) y ejecutar `./build.sh`.
 - **Prueba de `SQLiteSync` (creación del esquema desde cero).** Con un programa de prueba fuera del repo (scratchpad) que lee `proyectos.json` y `navegador.json` y llama a `SQLiteSync.sincronizar`. Incidente: la primera ejecución (con `HOME` falso, que macOS ignora) sobrescribió `cmdboard.db` real con datos de prueba. Corregido apartando ese `.db` y recreándolo desde cero con los JSON reales: 7 proyectos, 23 comandos, 8 docs, 3 grupos, 11 pestañas, coincide con los JSON. El `.db` anterior (con migración del 1-nov) no se conservó; el actual es el espejo de los JSON de hoy.
   Deshacer: no hace falta; el `.db` es derivado y se regenera en cada guardado. La copia con los datos de prueba está en el scratchpad y se puede borrar.
+
+## 2026-11-04
+- **Icono de tres rayas para reordenar PROYECTOS y NAVEGADOR.** `ContentView.swift`: cada fila de la barra lateral lleva el asa (`line.3.horizontal`) y acepta soltar con `Reordenar` (proyectos y grupos; nuevo `@State arrastrando`). `NavegadorView.swift`: las tarjetas de pestañas ya no se arrastran enteras, sino desde un asa en la esquina superior derecha. Sin cambios en el modelo de datos. Regenerado `CmdBoard.app` con `./build.sh` (app cerrada; sin cambios ajenos sin commitear).
+  Deshacer: `git checkout Sources/CmdBoard/ContentView.swift Sources/CmdBoard/NavegadorView.swift` y `./build.sh`.

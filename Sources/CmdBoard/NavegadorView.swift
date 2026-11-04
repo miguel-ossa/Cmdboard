@@ -118,12 +118,21 @@ struct NavegadorView: View {
             }
         }
         .tarjeta()
-        .onDrag {
-            arrastrando = v.id
-            return NSItemProvider(object: v.id.uuidString as NSString)
-        } preview: {
-            Text(v.titulo.isEmpty ? "Sin título" : v.titulo)
-                .padding(8).background(Tema.panel, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(alignment: .topTrailing) {
+            Image(systemName: "line.3.horizontal")
+                .foregroundStyle(Tema.champan)
+                .frame(width: 26, height: 22)
+                .background(Tema.fondo.opacity(0.75), in: RoundedRectangle(cornerRadius: 6))
+                .contentShape(Rectangle())
+                .padding(14)
+                .onDrag {
+                    arrastrando = v.id
+                    return NSItemProvider(object: v.id.uuidString as NSString)
+                } preview: {
+                    Text(v.titulo.isEmpty ? "Sin título" : v.titulo)
+                        .padding(8).background(Tema.panel, in: RoundedRectangle(cornerRadius: 8))
+                }
+                .help("Arrastra para reordenar")
         }
     }
 

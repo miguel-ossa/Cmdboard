@@ -4,6 +4,7 @@ struct ContentView: View {
     @EnvironmentObject var store: Store
     @State private var seleccion: UUID?
     @State private var nombrando: Nombrando?
+    @State private var arrastrando: UUID?
 
     var body: some View {
         NavigationSplitView {
@@ -106,7 +107,7 @@ struct ContentView: View {
 
     private func fila(_ id: UUID, _ nombre: String, grupo: Bool) -> some View {
         let elegido = id == seleccion
-        return Button { seleccion = id } label: {
+        let boton = Button { seleccion = id } label: {
             Text(nombre.isEmpty ? "Sin nombre" : nombre)
                 .foregroundStyle(elegido ? Tema.ambar : Tema.champan)
                 .fontWeight(elegido ? .semibold : .regular)
@@ -124,6 +125,25 @@ struct ContentView: View {
             Button("Renombrar…") { nombrando = Nombrando(id: id, texto: nombre, grupo: grupo) }
             Button("Eliminar", role: .destructive) { eliminar(id) }
         }
+        return HStack(spacing: 2) {
+            Image(systemName: "line.3.horizontal")
+                .font(.system(size: 11))
+                .foregroundStyle(Tema.apagado)
+                .frame(width: 18, height: 24)
+                .contentShape(Rectangle())
+                .onDrag {
+                    arrastrando = id
+                    return NSItemProvider(object: id.uuidString as NSString)
+                } preview: {
+                    Text(nombre.isEmpty ? "Sin nombre" : nombre)
+                        .padding(8)
+                        .background(Tema.panel, in: RoundedRectangle(cornerRadius: 8))
+                }
+                .help("Arrastra para reordenar")
+            boton
+        }
+        .onDrop(of: [.text], delegate: Reordenar(destino: id, lista: $store.proyectos, arrastrando: $arrastrando))
+        .onDrop(of: [.text], delegate: Reordenar(destino: id, lista: $store.grupos, arrastrando: $arrastrando))
     }
 
     // MARK: Barra inferior
